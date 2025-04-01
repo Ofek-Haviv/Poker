@@ -23,9 +23,39 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Create tables at startup
-with app.app_context():
+def init_db():
+    # Create all tables
     db.create_all()
+    
+    # Create default group if it doesn't exist
+    default_group = Group.query.filter_by(name='Default Group').first()
+    if not default_group:
+        default_group = Group(
+            name='Default Group',
+            join_code=secrets.token_urlsafe(8)
+        )
+        db.session.add(default_group)
+        db.session.commit()
+    
+    # Create admin user if it doesn't exist
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            email='admin@example.com',
+            password=generate_password_hash('admin123'),
+            group_id=default_group.id,
+            is_super_admin=True,
+            is_group_owner=True,
+            is_group_admin=True,
+            is_approved=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+
+# Initialize database at startup
+with app.app_context():
+    init_db()
 
 # Database Models
 class User(UserMixin, db.Model):
@@ -608,37 +638,5 @@ def reject_user(user_id):
     flash(f'User {user.username} has been rejected and removed.')
     return redirect(url_for('manage_group'))
 
-def init_db():
-    with app.app_context():
-        # Create all tables if they don't exist
-        db.create_all()
-        
-        # Create default group if it doesn't exist
-        default_group = Group.query.filter_by(name='Default Group').first()
-        if not default_group:
-            default_group = Group(
-                name='Default Group',
-                join_code=secrets.token_urlsafe(8)
-            )
-            db.session.add(default_group)
-            db.session.commit()
-        
-        # Create admin user if it doesn't exist
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                password=generate_password_hash('admin123'),
-                group_id=default_group.id,
-                is_super_admin=True,
-                is_group_owner=True,
-                is_group_admin=True,
-                is_approved=True
-            )
-            db.session.add(admin)
-            db.session.commit()
-
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True) 
