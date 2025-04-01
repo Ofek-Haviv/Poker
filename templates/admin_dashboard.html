@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Super Admin Dashboard</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="groups-tab" data-bs-toggle="tab" data-bs-target="#groups" type="button" role="tab">
+                                Groups
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                                Users
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="adminTabsContent">
+                        <div class="tab-pane fade show active" id="groups" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Group Name</th>
+                                            <th>Owner</th>
+                                            <th>Members</th>
+                                            <th>Join Code</th>
+                                            <th>Date Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for group in groups %}
+                                        <tr>
+                                            <td>{{ group.name }}</td>
+                                            <td>{{ group.owner.username if group.owner else 'No owner' }}</td>
+                                            <td>{{ group.users|length }}</td>
+                                            <td>
+                                                <code>{{ group.join_code }}</code>
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('{{ group.join_code }}')">
+                                                    Copy
+                                                </button>
+                                            </td>
+                                            <td>{{ group.date_created.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <a href="{{ url_for('view_group', group_id=group.id) }}" class="btn btn-sm btn-primary">View</a>
+                                                <a href="{{ url_for('manage_group', group_id=group.id) }}" class="btn btn-sm btn-warning">Manage</a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="users" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Group</th>
+                                            <th>Roles</th>
+                                            <th>Status</th>
+                                            <th>Date Registered</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in users %}
+                                        <tr>
+                                            <td>{{ user.username }}</td>
+                                            <td>{{ user.email }}</td>
+                                            <td>{{ user.group.name if user.group else 'No group' }}</td>
+                                            <td>
+                                                {% if user.is_super_admin %}
+                                                    <span class="badge bg-danger">Super Admin</span>
+                                                {% endif %}
+                                                {% if user.is_group_owner %}
+                                                    <span class="badge bg-success">Group Owner</span>
+                                                {% endif %}
+                                                {% if user.is_group_admin %}
+                                                    <span class="badge bg-primary">Group Admin</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if user.is_approved %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ user.date_registered.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                {% if not user.is_approved %}
+                                                    <form method="POST" action="{{ url_for('approve_user', user_id=user.id) }}" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                                    </form>
+                                                {% endif %}
+                                                {% if not user.is_super_admin %}
+                                                    <form method="POST" action="{{ url_for('remove_user', user_id=user.id) }}" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this user?')">
+                                                            Remove
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Could add a toast notification here
+        alert('Join code copied to clipboard!');
+    }).catch(function(err) {
+        console.error('Failed to copy text: ', err);
+    });
+}
+</script>
+{% endblock %} 

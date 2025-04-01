@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Create New Group</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('create_group') }}">
+                        <div class="mb-3">
+                            <label for="group_name" class="form-label">Group Name</label>
+                            <input type="text" class="form-control" id="group_name" name="group_name" required>
+                            <div class="form-text">Choose a name for your poker group.</div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Create Group</button>
+                        </div>
+                    </form>
+                    <hr>
+                    <div class="text-center">
+                        <p class="mb-0">
+                            <a href="{{ url_for('index') }}" class="btn btn-link">Back to Dashboard</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

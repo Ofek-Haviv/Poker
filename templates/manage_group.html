@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>Manage Group: {{ group.name }}</h4>
+                    <div>
+                        <span class="badge bg-secondary me-2">Join Code: <code>{{ group.join_code }}</code></span>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('{{ group.join_code }}')">
+                            Copy Join Code
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% set pending_memberships = group.memberships|selectattr('status', 'equalto', 'pending')|list %}
+                    {% if pending_memberships %}
+                    <div class="mb-4">
+                        <h5>Pending Requests</h5>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Date Requested</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for membership in pending_memberships %}
+                                    <tr>
+                                        <td>{{ membership.user.username }}</td>
+                                        <td>{{ membership.user.email }}</td>
+                                        <td>{{ membership.date_requested.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <form method="POST" action="{{ url_for('approve_member', membership_id=membership.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                            </form>
+                                            <form method="POST" action="{{ url_for('reject_member', membership_id=membership.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to reject this user?')">
+                                                    Reject
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <h5>Current Members</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Join Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set approved_memberships = group.memberships|selectattr('status', 'equalto', 'approved')|list %}
+                                {% for membership in approved_memberships %}
+                                <tr>
+                                    <td>{{ membership.user.username }}</td>
+                                    <td>{{ membership.user.email }}</td>
+                                    <td>
+                                        {% if membership.user.is_super_admin %}
+                                            <span class="badge bg-danger">Super Admin</span>
+                                        {% elif membership.user.is_group_owner %}
+                                            <span class="badge bg-success">Group Owner</span>
+                                        {% elif membership.user.is_group_admin %}
+                                            <span class="badge bg-primary">Group Admin</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Member</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ membership.date_processed.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if not membership.user.is_super_admin and not membership.user.is_group_owner and (current_user.is_group_owner or current_user.is_super_admin) %}
+                                            <form method="POST" action="{{ url_for('toggle_group_admin', user_id=membership.user.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm {% if membership.user.is_group_admin %}btn-warning{% else %}btn-primary{% endif %}">
+                                                    {% if membership.user.is_group_admin %}Remove Admin{% else %}Make Admin{% endif %}
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="{{ url_for('remove_user', user_id=membership.user.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this user?')">
+                                                    Remove
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Join code copied to clipboard!');
+    }).catch(function(err) {
+        console.error('Failed to copy text: ', err);
+    });
+}
+</script>
+{% endblock %} 

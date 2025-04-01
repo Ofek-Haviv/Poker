@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4>Monthly Summary</h4>
+                <form method="POST" action="{{ url_for('end_month') }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to end this month? This will archive all current games and reset the balances.')">
+                        End Month
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Balance (NIS)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player, balance in balances.items() %}
+                            <tr>
+                                <td>{{ player }}</td>
+                                <td>{{ "%.2f"|format(balance) }}</td>
+                                <td>
+                                    {% if balance > 0 %}
+                                    <span class="badge bg-success">Winning</span>
+                                    {% elif balance < 0 %}
+                                    <span class="badge bg-danger">Losing</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Even</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4">
+                    <h5>Debt Settlement</h5>
+                    <div class="list-group">
+                        {% set debtors = [] %}
+                        {% set creditors = [] %}
+                        {% for player, balance in balances.items() %}
+                            {% if balance < 0 %}
+                                {% set _ = debtors.append({'name': player, 'amount': -balance, 'remaining': -balance}) %}
+                            {% elif balance > 0 %}
+                                {% set _ = creditors.append({'name': player, 'amount': balance, 'remaining': balance}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% for debtor in debtors|sort(attribute='amount', reverse=true) %}
+                            {% for creditor in creditors|sort(attribute='amount', reverse=true) %}
+                                {% if debtor.remaining > 0.01 and creditor.remaining > 0.01 %}
+                                    {% if debtor.remaining <= creditor.remaining %}
+                                        {% set transfer = debtor.remaining %}
+                                    {% else %}
+                                        {% set transfer = creditor.remaining %}
+                                    {% endif %}
+                                    
+                                    {% if transfer > 0.01 %}
+                                        <div class="list-group-item">
+                                            {{ debtor.name }} owes {{ creditor.name }} {{ "%.2f"|format(transfer) }} NIS
+                                        </div>
+                                        {% set _ = debtor.update({'remaining': debtor.remaining - transfer}) %}
+                                        {% set _ = creditor.update({'remaining': creditor.remaining - transfer}) %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

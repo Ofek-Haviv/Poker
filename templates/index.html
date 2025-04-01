@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4>My Groups</h4>
+                <div>
+                    <a href="{{ url_for('create_group') }}" class="btn btn-success me-2">Create New Group</a>
+                    <a href="{{ url_for('join_group') }}" class="btn btn-primary">Join Existing Group</a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if user.groups %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Group Name</th>
+                                    <th>Your Role</th>
+                                    <th>Members</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in user.groups %}
+                                <tr>
+                                    <td>{{ group.name }}</td>
+                                    <td>
+                                        {% if user.is_super_admin %}
+                                            <span class="badge bg-danger">Super Admin</span>
+                                        {% elif group.owner_id == user.id %}
+                                            <span class="badge bg-success">Group Owner</span>
+                                        {% elif user in group.admins %}
+                                            <span class="badge bg-primary">Group Admin</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Member</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ group.users|length }}</td>
+                                    <td>
+                                        <a href="{{ url_for('view_group', group_id=group.id) }}" class="btn btn-sm btn-primary">View Games</a>
+                                        {% if user.is_super_admin or group.owner_id == user.id or user in group.admins %}
+                                            <a href="{{ url_for('manage_group', group_id=group.id) }}" class="btn btn-sm btn-warning">Manage Group</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        You're not part of any groups yet. Create a new group or join an existing one to get started!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Add New Player</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_player') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Player Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Player</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>Add Game Session</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_game') }}" id="gameForm">
+                    <div class="mb-3">
+                        <label for="chips_value" class="form-label">Chip Value (NIS)</label>
+                        <input type="number" step="0.01" class="form-control" id="chips_value" name="chips_value" required>
+                    </div>
+                    
+                    <div id="playersContainer">
+                        <div class="player-entry mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Player</label>
+                                    <select class="form-select" name="player_id[]" required>
+                                        <option value="">Select a player</option>
+                                        {% for player in players %}
+                                        <option value="{{ player.id }}">{{ player.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Buy-in Amount (in chips)</label>
+                                    <input type="number" step="0.01" class="form-control buy-in" name="buy_in[]" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Final Chip Count</label>
+                                    <input type="number" step="0.01" class="form-control final-amount" name="final_amount[]" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-secondary" onclick="addPlayerEntry()">Add Another Player</button>
+                    </div>
+
+                    <div class="alert alert-info" id="totalInfo">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Total Buy-in:</strong> <span id="totalBuyIn">0</span> NIS
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Total Chips:</strong> <span id="totalChips">0</span>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <strong>Status:</strong> <span id="balanceStatus">Enter player information</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Add Game Session</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4>Players</h4>
+                <a href="{{ url_for('monthly_summary') }}" class="btn btn-success">View Monthly Summary</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Player Name</th>
+                                <th>Total Games</th>
+                                <th>Total Buy-in</th>
+                                <th>Current Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in players %}
+                            <tr>
+                                <td>{{ player.name }}</td>
+                                <td>{{ player.game_participations|selectattr('game.is_archived', 'equalto', false)|list|length }}</td>
+                                <td>
+                                    {% set total_buy_in = 0 %}
+                                    {% for participation in player.game_participations %}
+                                        {% if not participation.game.is_archived %}
+                                            {% set total_buy_in = total_buy_in + (participation.buy_in * participation.game.chips_value) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ "%.2f"|format(total_buy_in) }} NIS
+                                </td>
+                                <td>
+                                    {% set total_won = 0 %}
+                                    {% for participation in player.game_participations %}
+                                        {% if not participation.game.is_archived %}
+                                            {% set final_amount_nis = participation.final_amount * participation.game.chips_value %}
+                                            {% set buy_in_nis = participation.buy_in * participation.game.chips_value %}
+                                            {% set total_won = total_won + (final_amount_nis - buy_in_nis) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ "%.2f"|format(total_won) }} NIS
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addPlayerEntry() {
+    const container = document.getElementById('playersContainer');
+    const newEntry = container.children[0].cloneNode(true);
+    
+    // Clear values
+    newEntry.querySelector('select').value = '';
+    newEntry.querySelector('.buy-in').value = '';
+    newEntry.querySelector('.final-amount').value = '';
+    
+    container.appendChild(newEntry);
+}
+
+function updateTotals() {
+    const buyIns = Array.from(document.getElementsByClassName('buy-in'))
+        .map(input => parseFloat(input.value) || 0);
+    const finalAmounts = Array.from(document.getElementsByClassName('final-amount'))
+        .map(input => parseFloat(input.value) || 0);
+    
+    const totalBuyIn = buyIns.reduce((a, b) => a + b, 0);
+    const totalChips = finalAmounts.reduce((a, b) => a + b, 0);
+    
+    document.getElementById('totalBuyIn').textContent = totalBuyIn.toFixed(2);
+    document.getElementById('totalChips').textContent = totalChips.toFixed(2);
+    
+    // Update status
+    const statusElement = document.getElementById('balanceStatus');
+    const totalInfo = document.getElementById('totalInfo');
+    
+    if (totalBuyIn === 0 && totalChips === 0) {
+        statusElement.textContent = 'Enter player information';
+        statusElement.className = 'text-muted';
+        totalInfo.className = 'alert alert-info';
+    } else if (Math.abs(totalBuyIn - totalChips) > 0.01) {
+        statusElement.textContent = 'Warning: Total chips do not match!';
+        statusElement.className = 'text-danger';
+        totalInfo.className = 'alert alert-danger';
+    } else {
+        statusElement.textContent = 'Chip totals match! Ready to save.';
+        statusElement.className = 'text-success';
+        totalInfo.className = 'alert alert-success';
+    }
+}
+
+// Add event listeners to all inputs
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('playersContainer');
+    container.addEventListener('input', updateTotals);
+});
+</script>
+{% endblock %} 

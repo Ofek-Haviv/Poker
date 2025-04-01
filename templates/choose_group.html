@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Welcome to Poker Night!</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h5>Choose Your Group</h5>
+                        <p class="text-muted">To start tracking poker games, you need to either create a new group or join an existing one.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Create New Group</h5>
+                                    <p class="card-text">Start your own poker group and invite your friends to join.</p>
+                                    <a href="{{ url_for('create_group') }}" class="btn btn-success btn-lg">Create Group</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Join Existing Group</h5>
+                                    <p class="card-text">Join a group using the join code provided by your friends.</p>
+                                    <a href="{{ url_for('join_group') }}" class="btn btn-primary btn-lg">Join Group</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="alert alert-info">
+                            <h6>How it works:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Creating a group:</strong> You'll become the group owner and can manage members and games.</li>
+                                <li><strong>Joining a group:</strong> You'll need a join code from the group owner or admin.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
