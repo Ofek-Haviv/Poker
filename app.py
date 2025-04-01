@@ -23,37 +23,31 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# All your model definitions here...
-
-# Initialize database at startup
-with app.app_context():
-    db.create_all()
-
 # Database Models
 class User(UserMixin, db.Model):
+    __tablename__ = 'users'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)  # Allow null for users without groups
-    is_super_admin = db.Column(db.Boolean, default=False)  # Main admin that controls everything
-    is_group_owner = db.Column(db.Boolean, default=False)  # Created the group, can't be removed
-    is_group_admin = db.Column(db.Boolean, default=False)  # Can manage group members and games
-    is_approved = db.Column(db.Boolean, default=True)  # Default to True since group approval happens separately
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True)
+    is_super_admin = db.Column(db.Boolean, default=False)
+    is_group_owner = db.Column(db.Boolean, default=False)
+    is_group_admin = db.Column(db.Boolean, default=False)
+    is_approved = db.Column(db.Boolean, default=True)
     date_registered = db.Column(db.DateTime, default=datetime.utcnow)
     player = db.relationship('Player', backref='user', uselist=False)
     
     @property
     def groups(self):
-        # For now, return a list containing just the user's group
-        # In the future, this could be expanded to support multiple groups
         return [self.group] if self.group else []
 
 class Group(db.Model):
+    __tablename__ = 'groups'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     join_code = db.Column(db.String(20), unique=True, nullable=False)
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     users = db.relationship('User', backref='group', lazy=True, foreign_keys=[User.group_id])
     owner = db.relationship('User', foreign_keys=[owner_id])
     players = db.relationship('Player', backref='group', lazy=True)
@@ -61,39 +55,46 @@ class Group(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Player(db.Model):
+    __tablename__ = 'players'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     game_participations = db.relationship('GameParticipation', backref='player', lazy=True)
 
 class GameSession(db.Model):
+    __tablename__ = 'game_sessions'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     total_chips = db.Column(db.Float, nullable=False)
     chips_value = db.Column(db.Float, nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     participations = db.relationship('GameParticipation', backref='game', lazy=True)
     is_archived = db.Column(db.Boolean, default=False)
 
 class GameParticipation(db.Model):
+    __tablename__ = 'game_participations'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
-    game_id = db.Column(db.Integer, db.ForeignKey('game_session.id'), nullable=False)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    game_id = db.Column(db.Integer, db.ForeignKey('game_sessions.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
     buy_in = db.Column(db.Float, nullable=False)
     final_amount = db.Column(db.Float, nullable=False)
 
 class GroupMembership(db.Model):
+    __tablename__ = 'group_memberships'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
+    status = db.Column(db.String(20), default='pending')
     date_requested = db.Column(db.DateTime, default=datetime.utcnow)
     date_processed = db.Column(db.DateTime)
-
     user = db.relationship('User', backref='group_memberships')
     group = db.relationship('Group', backref='memberships')
+
+# Initialize database after all models are defined
+with app.app_context():
+    db.create_all()
 
 @login_manager.user_loader
 def load_user(user_id):
