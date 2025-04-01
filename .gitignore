@@ -1,10 +1,22 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 env/
+venv/
+ENV/
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual Environment
 build/
 develop-eggs/
 dist/
@@ -20,23 +32,8 @@ var/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-ENV/
-
-# Database
-*.db
-*.sqlite3
-
-# Environment Variables
-.env
-
 # IDE
 .idea/
 .vscode/
 *.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db 
+*.swo 
